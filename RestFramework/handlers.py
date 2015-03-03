@@ -16,7 +16,7 @@ from tornado.escape import json_decode
 from RestFramework import auth
 from RestFramework import serializers
 from RestFramework.exceptions import APIError
-from RestFramework.http_status import HTTP_STATUS_METHOD_NOT_ALLOWED, HTTP_STATUS_UNATHORIZED
+from RestFramework.http_status import HTTP_STATUS_METHOD_NOT_ALLOWED, HTTP_STATUS_UNATHORIZED, HTTP_STATUS_OK
 from RestFramework.http_status import RESPONSES
 
 
@@ -110,10 +110,13 @@ class BaseRESTHandler(RequestHandler):
             error_info = {"message": message, "code": status_code}
             self.finish(error_info)
 
-    def _response(self, result):
-        # 同步时直接使用 self.write返回数据； 异步时，需要手动调用 self._response 结束
-        self.write(result)
-        self.finish()  # finish 会调用 on_finish 清理相关连接
+    def _response(self, response, code=HTTP_STATUS_OK, *args, **kwargs):
+        message = RESPONSES[code]
+        self._body = response or {"message": message, "code": code}
+        if self._finished:
+            return
+        self.set_status(code)
+        self.finish(response)  # finish 会调用 on_finish 清理相关连接
         return
 
     def method_check(self):

@@ -9,11 +9,11 @@ __author__ = 'deling.ma'
 
 class UserCenterBackend(object):
     def basic_auth(self, request, **kwargs):
-        # TODO: need to add how to authenticate user, if user center doesn't return User, return None
+        # TODO: 添加基本身份认证
         return None
 
     def token_auth(self, request, **kwargs):
-        # TODO: need to add how to authenticate user, if user center doesn't return User, return None
+        # TODO: 添加token身份认证
         return None
 
 
