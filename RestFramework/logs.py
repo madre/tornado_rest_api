@@ -16,6 +16,8 @@ def init_log():
     _LOG_PATH_ = os.path.join(BASE_DIR, "logs")
     if not os.path.isdir(_LOG_PATH_):
         os.makedirs(_LOG_PATH_)
+
+    # access log，记录关键信息，按天分割，保留30天
     access_logger = logging.getLogger("api_access")
     access_log_file = os.path.join(_LOG_PATH_, "access.log")
     access_handler = logging.handlers.TimedRotatingFileHandler(access_log_file, when='midnight', backupCount=30)
@@ -25,6 +27,7 @@ def init_log():
     access_logger.setLevel(logging.INFO)
     #access_logger.setLevel(logging.DEBUG)
 
+    # error log，记录异常和错误信息，按天分割，保留30天
     error_logger = logging.getLogger("api_error")
     error_log_file = os.path.join(_LOG_PATH_, "error.log")
     error_handler = logging.handlers.TimedRotatingFileHandler(error_log_file, when='midnight', backupCount=30)
