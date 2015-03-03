@@ -20,7 +20,8 @@ from RestFramework.http_status import HTTP_STATUS_METHOD_NOT_ALLOWED, HTTP_STATU
 from RestFramework.http_status import RESPONSES
 
 
-logger = logging.getLogger('handlers')
+access_log = logging.getLogger("api_access")
+error_log = logging.getLogger("api_error")
 
 
 class BaseRESTHandler(RequestHandler):
