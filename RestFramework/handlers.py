@@ -42,8 +42,8 @@ class BaseRESTHandler(RequestHandler):
 
     def _get_request_data(self):
         # 参数格式和匹配验证，之后单独实现类
-        ContentType = self.request.headers.get("Content-Type")
-        if ContentType and ContentType == "application/json":
+        content_type = self.request.headers.get("Content-Type")
+        if content_type and content_type == "application/json":
             # json数据较复杂，TODO: 找到检查上传的平衡方案
             self.request.DATA = json_decode(self.request.body)  # 兼容前端传json body
             for field in self.arguments_required:
