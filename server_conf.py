@@ -1,6 +1,9 @@
 # -*- coding: UTF-8 -*-
+import os
+import logging
 from tornado.options import define,options as _options
-import logging,os
+
+error_log = logging.getLogger("api_error")
 
 define('root_path', default='/opt/spzhuan/api', help='invite pkg path')
 define('package_path', default='/opt/spzhuan/api/html/pkg/', help='invite pkg path')
@@ -65,7 +68,7 @@ _CONF_PATH_ = _LOCAL_PATH_+"/server.conf"
 try:
     _options.parse_config_file(_CONF_PATH_)
 except:
-    logging.error('load server.conf failed , use command line option')
+    error_log.error('load server.conf failed , use command line option')
 
 #通过第一次加载的配置项再增加数据库等配置项，这种情况需要再加载一遍，因为tornado必须在这里定于
 for db_tag in _options.db_host_name_list.split(","):
@@ -84,5 +87,5 @@ for db_tag in _options.redis_host_name_list.split(","):
 try:
     _options.parse_config_file(_CONF_PATH_)
 except:
-    logging.error('second load server.conf failed , use command line option')
+    error_log.error('second load server.conf failed , use command line option')
 

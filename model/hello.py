@@ -5,11 +5,16 @@
 __created__ = '2015/3/3'
 __author__ = 'deling.ma'
 """
+import logging
 from tornado import gen
 from tornado.httpclient import AsyncHTTPClient
 
 from RestFramework.handlers import RESTHandler
 from RestFramework.http_status import HTTP_STATUS_CREATED, HTTP_STATUS_ACCEPTED
+
+
+app_log = logging.getLogger("api_access")
+error_log = logging.getLogger("api_error")
 
 
 class HelloHandler(RESTHandler):
@@ -18,6 +23,8 @@ class HelloHandler(RESTHandler):
 
     def get(self, *args, **kwargs):
         arguments = self.request.DATA  # 请求参数
+        app_log.info("fewfewfewfwefwe")
+        error_log.error("f231312312332321")
         result = {"tes": "ew", "arguments": arguments}
         self._response(result)  # 无异步，也可使用 self.write
 
