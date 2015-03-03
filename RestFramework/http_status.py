@@ -6,51 +6,63 @@ __created__ = '2015/3/3'
 __author__ = 'deling.ma'
 """
 
-responses = {
-    100: 'Continue',
-    101: 'Switching Protocols',
+HTTP_STATUS_OK = 200
+HTTP_STATUS_CREATED = 201
+HTTP_STATUS_ACCEPTED = 202
+HTTP_STATUS_NOT_MODIFIED = 304
 
-    200: 'OK',
-    201: 'Created',
-    202: 'Accepted',
-    203: 'Non-Authoritative Information',
-    204: 'No Content',
-    205: 'Reset Content',
-    206: 'Partial Content',
+HTTP_STATUS_BAD_REQUEST = 400
+HTTP_STATUS_UNATHORIZED = 401
+HTTP_STATUS_FORBIDDEN = 403
+HTTP_STATUS_NOT_FOUND = 404
+HTTP_STATUS_METHOD_NOT_ALLOWED = 405
+HTTP_STATUS_CONFLICT = 409
+HTTP_STATUS_GONE = 410
+HTTP_STATUS_UNPROCESSABLE_ENTITY = 422
+HTTP_STATUS_INTERNAL_SERVER_ERROR = 500
+HTTP_STATUS_NOT_IMPLEMENTED = 501
 
-    300: 'Multiple Choices',
-    301: 'Moved Permanently',
-    302: 'Found',
-    303: 'See Other',
-    304: 'Not Modified',
-    305: 'Use Proxy',
-    306: '(Unused)',
-    307: 'Temporary Redirect',
+# 列出所有的http status 返回给前端的Message
+RESPONSES = {
+    100: '继续',
+    101: '切换协议',
 
-    400: 'Bad Request',
-    401: 'Unauthorized',
-    402: 'Payment Required',
-    403: 'Forbidden',
-    404: 'Not Found',
-    405: 'Method Not Allowed',
-    406: 'Not Acceptable',
-    407: 'Proxy Authentication Required',
-    408: 'Request Timeout',
-    409: 'Conflict',
-    410: 'Gone',
-    411: 'Length Required',
-    412: 'Precondition Failed',
-    413: 'Request Entity Too Large',
-    414: 'Request-URI Too Long',
-    415: 'Unsupported Media Type',
-    416: 'Requested Range Not Satisfiable',
-    417: 'Expectation Failed',
-    422: 'Unprocessable Entity',
+    200: '请求成功',
+    201: '创建成功',
+    202: '接受成功',
+    203: '第三方非验证信息',
+    204: '无内容',
+    205: '重置内容',
+    206: '不完整内容',
 
-    500: 'Internal Server Error',
-    501: 'Not Implemented',
-    502: 'Bad Gateway',
-    503: 'Service Unavailable',
-    504: 'Gateway Timeout',
-    505: 'HTTP Version Not Supported',
+    300: '多选择结果',
+    301: '请求被永久转换为新路径',
+    302: '重定向',
+    303: 'POST重定向为GET',
+    304: '未修改可用缓存',
+    305: '请通过代理访问',
+
+    400: '客户端请求有误',
+    401: "身份验证出错",
+    402: '需要支付',
+    403: '禁止访问',
+    404: '未找到路径',
+    405: '不支持该Http方法',
+    406: '无法接受该请求',
+    407: '代理身份验证未通过',
+    408: '客户端请求超时',
+    409: '数据冲突，请重新提交',
+    410: '服务被移除',
+    411: '请添加Content-Length',
+    412: '请求条件不足',
+    413: '请求数据理过大',
+    414: 'URI过长',
+    415: '服务器不支持该种数据格式',
+    417: '请求头信息格式有误',
+    422: '请求语义出错',
+
+    500: '服务器出错',
+    501: '服务器无法识别该请求',
+    503: '服务器忙碌，请稍候',
+    505: '不支持该版本的HTTP请求',
 }

@@ -5,25 +5,26 @@
 __created__ = '2015/3/3'
 __author__ = 'deling.ma'
 """
-import sys
 import logging
+import traceback
+import sys
+from tornado.web import RequestHandler, HTTPError, Finish
+from tornado import httputil
+from tornado.log import gen_log
 
-from tornado import escape
-from tornado.escape import utf8
-from tornado.web import RequestHandler
-
-from RestFramework import exceptions
-from RestFramework import http_resp
 from RestFramework import auth
 from RestFramework import serializers
-from RestFramework import http_status
+from RestFramework.http_status import HTTP_STATUS_METHOD_NOT_ALLOWED, HTTP_STATUS_UNATHORIZED
+from RestFramework.http_status import RESPONSES
 
 
 logger = logging.getLogger('handlers')
 
 
 class BaseRESTHandler(RequestHandler):
-    allowed_methods = []
+    allowed_methods = []  # 定制支持的http方法
+    AUTH_CHECK = False
+    THROTTLE_CHECK = False
     authentication = auth.Authentication()
     serializer = serializers.JSONSerializer()
 
@@ -31,171 +32,124 @@ class BaseRESTHandler(RequestHandler):
         super(BaseRESTHandler, self).__init__(*args, **kwargs)
         self.current_user = None
 
-    def prepare(self):
+    def cleaning(self):
+        # 清理连接
         pass
 
+    def prepare(self):
+        # 预处理
+        self.method_check()
+        if self.AUTH_CHECK:
+            self.is_authenticated()
+        if self.THROTTLE_CHECK:
+            self.throttle_check()
+
     def on_finish(self):
+        # 结束前处理
+        self.log_throttle_access()
         self.cleaning()
 
-    def _response(self, response):
-        if self._finished:
-            return
-
-        self.set_status(response.code)
-        self.finish(response._body)
-
-    def _execute(self, transforms, *args, **kwargs):
-        """Executes this request with the given output transforms."""
-        self._transforms = transforms
-        try:
-
-            self.path_args = [self.decode_argument(arg) for arg in args]
-            self.path_kwargs = dict((k, self.decode_argument(v, name=k))
-                                    for (k, v) in kwargs.items())
-
-            self.dispatch(self.request.method, **kwargs)
-        except Exception as e:
-            self._handle_request_exception(e)
-
-    def _handle_request_exception(self, e):
-        self.log_exception(*sys.exc_info())
-
-        if self._finished:
-            return
-
-        if isinstance(e, exceptions.APIError):
-            response = getattr(e, 'response', None)
-            if response is not None:
-                self._response(response)
-        else:
-            response = http_resp.HttpApplicationError(self.request)
-
-            if self.settings.get("debug"):
-                import traceback
-
-                self.set_status(http_resp.HTTP_STATUS_INTERNAL_SERVER_ERROR)
-                self.set_header('Content-Type', 'text/plain')
-                for line in traceback.format_exception(*sys.exc_info()):
-                    self.write(line)
-                self.finish()
-            else:
-                self._response(response)
-
     def set_default_headers(self):
+        # 将默认的返回头信息设置为 json
         self.set_header('Content-Type', 'application/json; charset=UTF-8')
 
-    def write(self, chunk):
+    def _handle_request_exception(self, e):
+        # 定制异常错误信息，透传错误的message
+        if isinstance(e, Finish):
+            if not self._finished:
+                self.finish()
+            return
+        self.log_exception(*sys.exc_info())
         if self._finished:
-            raise RuntimeError("Cannot write() after finish().  May be caused "
-                               "by using async operations without the "
-                               "@asynchronous decorator.")
-
-        if isinstance(chunk, dict) or isinstance(chunk, list):
-            chunk = self.serializer.serialize(chunk)
-            self.set_header("Content-Type", self.serializer.get_content_type())
-
-        chunk = utf8(chunk)
-
-        self._write_buffer.append(chunk)
-
-    def set_status(self, status_code, reason=None):
-        self._status_code = status_code
-        if reason is not None:
-            self._reason = escape.native_str(reason)
+            return
+        if isinstance(e, HTTPError):
+            if e.status_code not in httputil.responses and not e.reason:
+                gen_log.error("Bad HTTP status code: %d", e.status_code)
+                self.send_error(500, exc_info=sys.exc_info(), message=e.message)
+            else:
+                self.send_error(e.status_code, exc_info=sys.exc_info(), message=e.log_message)
         else:
-            try:
-                self._reason = http_status.responses[status_code]
-            except KeyError:
-                raise ValueError("unknown status code %d", status_code)
+            self.send_error(500, exc_info=sys.exc_info(), message=e.log_message)
 
-    def head(self, *args, **kwargs):
-        raise exceptions.HttpMethodNotAllowed(self.request)
-
-    def options(self, *args, **kwargs):
-        raise exceptions.HttpMethodNotAllowed(self.request)
-
-    def get(self, *args, **kwargs):
-        raise exceptions.HttpMethodNotAllowed(self.request)
-
-    def post(self, *args, **kwargs):
-        raise exceptions.HttpMethodNotAllowed(self.request)
-
-    def put(self, *args, **kwargs):
-        raise exceptions.HttpMethodNotAllowed(self.request)
-
-    def patch(self, *args, **kwargs):
-        raise exceptions.HttpMethodNotAllowed(self.request)
-
-    def delete(self, *args, **kwargs):
-        raise exceptions.HttpMethodNotAllowed(self.request)
-
-    def dispatch(self, request_method, *args, **kwargs):
-        method = self.method_check(request_method)
-
-        func = getattr(self, method, None)
-        if func is None:
-            raise exceptions.ImmediateHttpResponse(
-                response=http_resp.HttpNotImplemented(self.request)
-            )
-
-        self.is_authenticated()
-
-        self.throttle_check()
-
-        response = func(**kwargs)
-
-        self.log_throttle_access()
-
-        if isinstance(response, http_resp.HttpResponse):
-            self._response(response)
+    def write_error(self, status_code, **kwargs):
+        """# 定制异常错误信息, 默认改为json数据
+        """
+        if self.settings.get("serve_traceback") and "exc_info" in kwargs:
+            # in debug mode, try to send a traceback
+            self.set_header('Content-Type', 'application/json')
+            for line in traceback.format_exception(*kwargs["exc_info"]):
+                self.write(line)
+            self.finish()
         else:
-            self._response(self.create_http_response(response))
+            message = kwargs["message"] if "message" in kwargs else self._reason
+            error_info = {"message": message, "code": status_code}
+            self.finish(error_info)
 
-    def create_http_response(self, data, response_class=http_resp.HttpResponse):
-        response = response_class(self.request)
-        response._body = data
-        return response
+    def method_check(self):
+        # 检查HTTP方法是否支持
+        method = self.request.method.upper()
 
-    def method_check(self, method):
-        method = method.lower()
-
-        allowed_methods = [meth.lower() for meth in self.allowed_methods]
-        allows = ','.join(meth.upper() for meth in allowed_methods)
-
-        if method == 'options':
-            response = http_resp.HttpResponse(self.request)
-            self.set_header('Allow', allows)
-            raise exceptions.ImmediateHttpResponse(response=response)
+        allowed_methods = [meth.upper() for meth in self.allowed_methods]
+        allows = ','.join(meth for meth in allowed_methods)
 
         if method not in self.SUPPORTED_METHODS and \
-                not method in allowed_methods:
-            response = http_resp.HttpMethodNotAllowed(self.request)
+                method not in allowed_methods:
             self.set_header('Allow', allows)
-            raise exceptions.ImmediateHttpResponse(response=response)
+            raise HTTPError(HTTP_STATUS_METHOD_NOT_ALLOWED,
+                            log_message=RESPONSES[HTTP_STATUS_METHOD_NOT_ALLOWED])
 
         return method
 
+    def serialize(self, data):
+        # 数据Json序列化
+        return self.serializer.serialize(data)
+
     def is_authenticated(self):
+        # 判断用户身份
         is_auth, user = self.authentication.is_authenticated(self.request)
 
         if not is_auth:
             self.current_user = None
-            raise exceptions.ImmediateHttpResponse(
-                response=http_resp.HttpUnauthorized(self.request)
-            )
+            raise HTTPError(HTTP_STATUS_UNATHORIZED,
+                            log_message=RESPONSES[HTTP_STATUS_UNATHORIZED])
         else:
             self.current_user = user
 
-    def serialize(self, data):
-        return self.serializer.serialize(data)
-
     def throttle_check(self):
-        # TODO: throttle control
+        # 访问流量控制
         pass
 
     def log_throttle_access(self):
-        # TODO
+        # 已完成服务的打印日志
         pass
+
+    def head(self, *args, **kwargs):
+        raise HTTPError(HTTP_STATUS_METHOD_NOT_ALLOWED,
+                        log_message=RESPONSES[HTTP_STATUS_METHOD_NOT_ALLOWED])
+
+    def options(self, *args, **kwargs):
+        raise HTTPError(HTTP_STATUS_METHOD_NOT_ALLOWED,
+                        log_message=RESPONSES[HTTP_STATUS_METHOD_NOT_ALLOWED])
+
+    def get(self, *args, **kwargs):
+        raise HTTPError(HTTP_STATUS_METHOD_NOT_ALLOWED,
+                        log_message=RESPONSES[HTTP_STATUS_METHOD_NOT_ALLOWED])
+
+    def post(self, *args, **kwargs):
+        raise HTTPError(HTTP_STATUS_METHOD_NOT_ALLOWED,
+                        log_message=RESPONSES[HTTP_STATUS_METHOD_NOT_ALLOWED])
+
+    def put(self, *args, **kwargs):
+        raise HTTPError(HTTP_STATUS_METHOD_NOT_ALLOWED,
+                        log_message=RESPONSES[HTTP_STATUS_METHOD_NOT_ALLOWED])
+
+    def patch(self, *args, **kwargs):
+        raise HTTPError(HTTP_STATUS_METHOD_NOT_ALLOWED,
+                        log_message=RESPONSES[HTTP_STATUS_METHOD_NOT_ALLOWED])
+
+    def delete(self, *args, **kwargs):
+        raise HTTPError(HTTP_STATUS_METHOD_NOT_ALLOWED,
+                        log_message=RESPONSES[HTTP_STATUS_METHOD_NOT_ALLOWED])
 
 
 class RESTHandler(BaseRESTHandler):
