@@ -9,8 +9,12 @@ from RestFramework.handlers import RESTHandler
 
 
 class HelloHandler(RESTHandler):
-    AUTH_CHECK = True
+    AUTH_CHECK = False
 
     def get(self, *args, **kwargs):
+        te = {"tes": "ew"}
+        self.write(te)
+
+    def post(self, *args, **kwargs):
         te = {"tes": "ew"}
         self.write(te)

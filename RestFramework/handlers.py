@@ -22,7 +22,8 @@ logger = logging.getLogger('handlers')
 
 
 class BaseRESTHandler(RequestHandler):
-    allowed_methods = []  # 定制支持的http方法
+    allowed_methods = ["GET", "HEAD", "POST", "DELETE", "PATCH", "PUT",
+                       "OPTIONS"]  # 定制支持的http方法
     AUTH_CHECK = False
     THROTTLE_CHECK = False
     authentication = auth.Authentication()
@@ -92,7 +93,7 @@ class BaseRESTHandler(RequestHandler):
         allowed_methods = [meth.upper() for meth in self.allowed_methods]
         allows = ','.join(meth for meth in allowed_methods)
 
-        if method not in self.SUPPORTED_METHODS and \
+        if method not in self.SUPPORTED_METHODS or \
                 method not in allowed_methods:
             self.set_header('Allow', allows)
             raise HTTPError(HTTP_STATUS_METHOD_NOT_ALLOWED,
