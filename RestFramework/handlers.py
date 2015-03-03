@@ -1,4 +1,10 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python
+# coding=utf-8
+"""
+基础http处理
+__created__ = '2015/3/3'
+__author__ = 'deling.ma'
+"""
 import sys
 import logging
 
@@ -7,7 +13,7 @@ from tornado.escape import utf8
 from tornado.web import RequestHandler
 
 from RestFramework import exceptions
-from RestFramework import http
+from RestFramework import http_resp
 from RestFramework import auth
 from RestFramework import serializers
 from RestFramework import http_status
@@ -24,6 +30,12 @@ class BaseRESTHandler(RequestHandler):
     def __init__(self, *args, **kwargs):
         super(BaseRESTHandler, self).__init__(*args, **kwargs)
         self.current_user = None
+
+    def prepare(self):
+        pass
+
+    def on_finish(self):
+        self.cleaning()
 
     def _response(self, response):
         if self._finished:
@@ -56,12 +68,12 @@ class BaseRESTHandler(RequestHandler):
             if response is not None:
                 self._response(response)
         else:
-            response = http.HttpApplicationError(self.request)
+            response = http_resp.HttpApplicationError(self.request)
 
             if self.settings.get("debug"):
                 import traceback
 
-                self.set_status(http.HTTP_STATUS_INTERNAL_SERVER_ERROR)
+                self.set_status(http_resp.HTTP_STATUS_INTERNAL_SERVER_ERROR)
                 self.set_header('Content-Type', 'text/plain')
                 for line in traceback.format_exception(*sys.exc_info()):
                     self.write(line)
@@ -123,7 +135,7 @@ class BaseRESTHandler(RequestHandler):
         func = getattr(self, method, None)
         if func is None:
             raise exceptions.ImmediateHttpResponse(
-                response=http.HttpNotImplemented(self.request)
+                response=http_resp.HttpNotImplemented(self.request)
             )
 
         self.is_authenticated()
@@ -134,12 +146,12 @@ class BaseRESTHandler(RequestHandler):
 
         self.log_throttle_access()
 
-        if isinstance(response, http.HttpResponse):
+        if isinstance(response, http_resp.HttpResponse):
             self._response(response)
         else:
             self._response(self.create_http_response(response))
 
-    def create_http_response(self, data, response_class=http.HttpResponse):
+    def create_http_response(self, data, response_class=http_resp.HttpResponse):
         response = response_class(self.request)
         response._body = data
         return response
@@ -151,13 +163,13 @@ class BaseRESTHandler(RequestHandler):
         allows = ','.join(meth.upper() for meth in allowed_methods)
 
         if method == 'options':
-            response = http.HttpResponse(self.request)
+            response = http_resp.HttpResponse(self.request)
             self.set_header('Allow', allows)
             raise exceptions.ImmediateHttpResponse(response=response)
 
         if method not in self.SUPPORTED_METHODS and \
                 not method in allowed_methods:
-            response = http.HttpMethodNotAllowed(self.request)
+            response = http_resp.HttpMethodNotAllowed(self.request)
             self.set_header('Allow', allows)
             raise exceptions.ImmediateHttpResponse(response=response)
 
@@ -169,7 +181,7 @@ class BaseRESTHandler(RequestHandler):
         if not is_auth:
             self.current_user = None
             raise exceptions.ImmediateHttpResponse(
-                response=http.HttpUnauthorized(self.request)
+                response=http_resp.HttpUnauthorized(self.request)
             )
         else:
             self.current_user = user

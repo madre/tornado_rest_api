@@ -1,5 +1,11 @@
-# -*- coding: utf-8 -*-
-from RestFramework import http
+#!/usr/bin/env python
+# coding=utf-8
+"""
+异常管理
+__created__ = '2015/3/3'
+__author__ = 'deling.ma'
+"""
+from RestFramework import http_resp
 
 
 class APIError(Exception):
@@ -16,7 +22,7 @@ class ImmediateHttpResponse(APIError):
 
 
 class APIResponseError(APIError):
-    response_class = http.HttpResponse
+    response_class = http_resp.HttpResponse
 
     def __init__(self, request, data=None, **kwargs):
         self._response = self.response_class(request, data, **kwargs)
@@ -30,31 +36,31 @@ class APIResponseError(APIError):
 
 
 class HttpBadRequest(APIResponseError):
-    response_class = http.HttpBadRequest
+    response_class = http_resp.HttpBadRequest
 
 
 class HttpUnauthorized(APIResponseError):
-    response_class = http.HttpUnauthorized
+    response_class = http_resp.HttpUnauthorized
 
 
 class HttpForbidden(APIResponseError):
-    response_class = http.HttpForbidden
+    response_class = http_resp.HttpForbidden
 
 
 class HttpNotFound(APIResponseError):
-    response_class = http.HttpNotFound
+    response_class = http_resp.HttpNotFound
 
 
 class HttpMethodNotAllowed(APIResponseError):
-    response_class = http.HttpMethodNotAllowed
+    response_class = http_resp.HttpMethodNotAllowed
 
 
 class HttpUnprocessableEntity(APIResponseError):
-    response_class = http.HttpUnprocessableEntity
+    response_class = http_resp.HttpUnprocessableEntity
 
 
 class HttpApplicationError(APIResponseError):
-    response_class = http.HttpApplicationError
+    response_class = http_resp.HttpApplicationError
 
 
 class MissingParamError(HttpUnprocessableEntity):

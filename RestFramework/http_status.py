@@ -1,4 +1,11 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python
+# coding=utf-8
+"""
+http status对应的返回文字
+__created__ = '2015/3/3'
+__author__ = 'deling.ma'
+"""
+
 responses = {
     100: 'Continue',
     101: 'Switching Protocols',

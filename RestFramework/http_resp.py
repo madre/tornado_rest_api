@@ -1,6 +1,12 @@
-# -*- coding: utf-8 -*-
-import tornado.httpclient
+#!/usr/bin/env python
+# coding=utf-8
+"""
+http返回状态定义
+__created__ = '2015/3/3'
+__author__ = 'deling.ma'
+"""
 
+import tornado.httpclient
 
 HTTP_STATUS_OK = 200
 HTTP_STATUS_CREATED = 201

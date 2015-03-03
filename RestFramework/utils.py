@@ -1,4 +1,12 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python
+# coding=utf-8
+"""
+基础工具集
+__created__ = '2015/3/3'
+__author__ = 'deling.ma'
+"""
+
+
 def is_aware(value):
     """
     Determines if a given datetime.datetime is aware.

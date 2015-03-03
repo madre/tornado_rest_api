@@ -1,4 +1,10 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python
+# coding=utf-8
+"""
+数据格式解码、编码
+__created__ = '2015/3/3'
+__author__ = 'deling.ma'
+"""
 import json
 import decimal
 import datetime

@@ -1,8 +1,18 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python
+# coding=utf-8
+"""
+身份认证
+__created__ = '2015/3/3'
+__author__ = 'deling.ma'
+"""
 
 
 class UserCenterBackend(object):
-    def authenticate(self, request, **kwargs):
+    def basic_auth(self, request, **kwargs):
+        # TODO: need to add how to authenticate user, if user center doesn't return User, return None
+        return None
+
+    def token_auth(self, request, **kwargs):
         # TODO: need to add how to authenticate user, if user center doesn't return User, return None
         return None
 
@@ -16,5 +26,5 @@ class Authentication(object):
             self.backend = backend
 
     def is_authenticated(self, request, **kwargs):
-        user = self.backend.authenticate(request, **kwargs)
+        user = self.backend.basic_auth(request, **kwargs)
         return bool(user), user

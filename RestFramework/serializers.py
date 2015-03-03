@@ -1,4 +1,10 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python
+# coding=utf-8
+"""
+返回数据序列化
+__created__ = '2015/3/3'
+__author__ = 'deling.ma'
+"""
 import json
 
 from RestFramework.encoders import JSONEncoder
