@@ -5,7 +5,6 @@
 __created__ = '2015/3/3'
 __author__ = 'deling.ma'
 """
-import os
 import platform
 from tornado.ioloop import IOLoop
 import tornado.httpserver
