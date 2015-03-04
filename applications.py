@@ -7,7 +7,7 @@ __author__ = 'deling.ma'
 """
 import os
 import tornado.web
-from model.hello import HelloHandler
+from wifi_cloud.hello import HelloHandler
 
 _LOCAL_PATH_ = os.path.abspath(os.path.dirname(__file__))
 

@@ -11,8 +11,8 @@ import tornado.httpserver
 import tornado.web
 from tornado.options import options as _options
 
-from RestFramework.logs import init_log
-from urls import application
+from RestFramework.log_config import init_log
+from applications import application
 import server_conf
 
 
