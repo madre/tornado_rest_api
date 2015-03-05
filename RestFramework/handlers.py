@@ -15,60 +15,64 @@ from tornado.escape import json_decode
 
 from RestFramework import auth
 from RestFramework import serializers
+from RestFramework.caching import CacheMixin
 from RestFramework.exceptions import APIError
 from RestFramework.http_status import HTTP_STATUS_METHOD_NOT_ALLOWED, HTTP_STATUS_UNATHORIZED, HTTP_STATUS_OK
 from RestFramework.http_status import RESPONSES
-
+from RestFramework.mysql_manager import MysqlConn
+from RestFramework.validate import ValidateMixin
 
 access_log = logging.getLogger("api_access")
 error_log = logging.getLogger("api_error")
 
 
-class BaseRESTHandler(RequestHandler):
+class BaseRESTHandler(ValidateMixin, CacheMixin, RequestHandler):
     allowed_methods = ["GET", "HEAD", "POST", "DELETE", "PATCH", "PUT",
                        "OPTIONS"]  # 定制支持的http方法
     AUTH_CHECK = False
     THROTTLE_CHECK = False
     authentication = auth.Authentication()
     serializer = serializers.JSONSerializer()
-    arguments_required = []  # 定义必须上传的参数
 
     def __init__(self, *args, **kwargs):
+        self._mysql_conn_arr = {}
         super(BaseRESTHandler, self).__init__(*args, **kwargs)
         self.current_user = None
 
     def cleaning(self):
-        # 清理连接
-        pass
+        # 结束时关闭数据库连接
+        if self._mysql_conn_arr:
+            for key in self._mysql_conn_arr:
+                try:
+                    self._mysql_conn_arr[key].close()
+                except:
+                    pass
+
+    def mysql_conn(self, db_name=""):
+        self._mysql_conn_arr[db_name] = MysqlConn(db_name)
+        return self._mysql_conn_arr[db_name]
 
     def _get_request_data(self):
-        # 参数格式和匹配验证，之后单独实现类
-        content_type = self.request.headers.get("Content-Type")
-        if content_type and content_type == "application/json":
-            # json数据较复杂，TODO: 找到检查上传的平衡方案
+        content_type = self.request.headers.get("Content-Type", "")
+        if content_type and content_type.startswith("application/json"):
             self.request.DATA = json_decode(self.request.body)  # 兼容前端传json body
-            for field in self.arguments_required:
-                # 检查是否有必须字段
-                self._get_argument(field, self._ARG_DEFAULT, self.request.DATA, True)
         else:
-            data = {}
-            for arg in list(self.request.arguments.keys()):
-                if arg in self.arguments_required:
-                    data[arg] = self.get_argument(arg)  # 必须的参数未传直接报错
-                else:
-                    data[arg] = self.get_argument(arg, "")
+            data = {arg: self.get_argument(arg, "") for arg in self.request.arguments.keys()}
             self.request.DATA = data
 
     def prepare(self):
         # 预处理
         self.method_check()
+        # 将上传数据放入request.DATA中
+        self._get_request_data()
+
         if self.AUTH_CHECK:
             self.is_authenticated()
         if self.THROTTLE_CHECK:
             self.throttle_check()
 
-        # 将上传数据放入request.DATA中
-        self._get_request_data()
+        if self.arguments_valid_rules:
+            self._validate()  # ValidateMixin中实现
 
     def on_finish(self):
         # 结束前处理
@@ -108,15 +112,18 @@ class BaseRESTHandler(RequestHandler):
             self.finish()
         else:
             message = kwargs["message"] if "message" in kwargs else self._reason
-            error_info = {"message": message, "code": status_code}
+            error_info = {"message": message, "status": status_code, "code": 100000}
+            # 为兼容前端，v1版将所有非服务器异常 返回的http status暂设为200
+            if status_code < 500:
+                self.set_status(200)
             self.finish(error_info)
 
-    def _response(self, response, code=HTTP_STATUS_OK, *args, **kwargs):
-        message = RESPONSES[code]
-        self._body = response or {"message": message, "code": code}
+    def _response(self, response, status=HTTP_STATUS_OK, *args, **kwargs):
+        message = RESPONSES[status]
+        self._body = response or {"message": message, "status": status, "code": 100000}
         if self._finished:
             return
-        self.set_status(code)
+        self.set_status(status)
         self.finish(response)  # finish 会调用 on_finish 清理相关连接
         return
 
@@ -128,7 +135,7 @@ class BaseRESTHandler(RequestHandler):
         allows = ','.join(meth for meth in allowed_methods)
 
         if method not in self.SUPPORTED_METHODS or \
-                method not in allowed_methods:
+                        method not in allowed_methods:
             self.set_header('Allow', allows)
             raise APIError(HTTP_STATUS_METHOD_NOT_ALLOWED,
                            log_message=RESPONSES[HTTP_STATUS_METHOD_NOT_ALLOWED])

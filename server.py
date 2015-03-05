@@ -12,8 +12,17 @@ import tornado.web
 from tornado.options import options as _options
 
 from RestFramework.log_config import init_log
-from applications import application
 import server_conf
+# server.conf 需要在 application 之前调用
+from applications import application
+
+DAEMON = "zhuan_wifi_api"
+try:
+    import setproctitle
+except ImportError:
+    pass
+else:
+    setproctitle.setproctitle(DAEMON)
 
 
 if __name__ == "__main__":
@@ -22,7 +31,7 @@ if __name__ == "__main__":
     if plat_str.startswith("Windows"):  # for windows
         print "start"
         server = tornado.httpserver.HTTPServer(application, xheaders=True)
-        server.bind(8899)
+        server.bind(9819)
         server.start()
         tornado.ioloop.IOLoop.instance().start()
     else:

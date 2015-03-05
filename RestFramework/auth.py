@@ -10,6 +10,8 @@ __author__ = 'deling.ma'
 class UserCenterBackend(object):
     def basic_auth(self, request, **kwargs):
         # TODO: 添加基本身份认证
+        if request.DATA.get("phone") and request.DATA.get("password"):
+            return "nick"
         return None
 
     def token_auth(self, request, **kwargs):
